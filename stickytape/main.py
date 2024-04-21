@@ -8,6 +8,7 @@ def main():
     output_file = _open_output(args)
     output = stickytape.script(
         args.script,
+        only_target=args.only_target,
         add_python_modules=args.add_python_module,
         add_python_paths=args.add_python_path,
         python_binary=args.python_binary,
@@ -24,6 +25,7 @@ def _open_output(args):
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("script")
+    parser.add_argument("--only-target", action='append', default=[])
     parser.add_argument("--add-python-module", action="append", default=[])
     parser.add_argument("--add-python-path", action="append", default=[])
     parser.add_argument("--python-binary")

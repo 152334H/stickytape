@@ -1,4 +1,5 @@
 import ast
+import re
 import os.path
 import subprocess
 
@@ -7,6 +8,7 @@ from .stdlib import is_stdlib_module
 
 def script(
     path,
+    only_target=False,
     add_python_modules=None,
     add_python_paths=None,
     python_binary=None,
@@ -28,6 +30,7 @@ def script(
         path,
         sys_path=python_paths,
         add_python_modules=add_python_modules,
+        only_target=only_target,
     ))
     with _open_source_file(path) as source_file:
         output.append(_indent(source_file.read()))
@@ -64,15 +67,16 @@ def _prelude():
     with open(prelude_path, encoding="utf-8") as prelude_file:
         return prelude_file.read()
 
-def _generate_module_writers(path, sys_path, add_python_modules):
-    generator = ModuleWriterGenerator(sys_path)
+def _generate_module_writers(path, sys_path, add_python_modules, only_target):
+    generator = ModuleWriterGenerator(sys_path,only_target)
     generator.generate_for_file(path, add_python_modules=add_python_modules)
     return generator.build()
 
 class ModuleWriterGenerator(object):
-    def __init__(self, sys_path):
+    def __init__(self, sys_path, only_target):
         self._sys_path = sys_path
         self._modules = {}
+        self.only_target = [re.compile(s) for s in only_target]
 
     def build(self):
         output = []
@@ -100,7 +104,9 @@ class ModuleWriterGenerator(object):
         import_targets = self._read_possible_import_targets(python_module, import_line)
 
         for import_target in import_targets:
-            if import_target.module_name not in self._modules:
+            if import_target.module_name not in self._modules and (
+                not self.only_target or any(r.match(import_target.module_name) for r in self.only_target)
+            ):
                 self._modules[import_target.module_name] = (import_target.relative_path, import_target.read_binary())
                 self._generate_for_module(import_target)
 
